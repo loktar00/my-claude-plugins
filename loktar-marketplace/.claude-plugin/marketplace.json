@@ -1,0 +1,9 @@
+{
+  "name": "loktar-dev",
+  "owner": {"name": "Me"},
+  "plugins": [{
+    "name": "ralph-wiggum-windows",
+    "source": "./ralph-wiggum-windows",
+    "description": "alph Wiggum loop plugin for Windows - PowerShell version"
+  }]
+}
