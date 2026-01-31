@@ -1,0 +1,10 @@
+{
+  "name": "ralph-wiggum-windows",
+  "version": "1.0.0",
+  "description": "Ralph Wiggum loop plugin for Windows - PowerShell version",
+  "author": {
+    "name": "Anthropic"
+  },
+  "homepage": "https://github.com/anthropics/claude-code",
+  "license": "MIT"
+}
