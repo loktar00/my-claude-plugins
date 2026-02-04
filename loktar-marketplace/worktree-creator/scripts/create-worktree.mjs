@@ -212,8 +212,11 @@ function createWorktree(worktreeName, branchName, repoRoot) {
   console.log('\n[4/4] Launching Claude in new terminal...');
   try {
     if (process.platform === 'win32') {
-      // Windows: Use cmd.exe to start a new terminal window
-      spawn('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', `cd /d "${worktreePath}" && claude`], {
+      // Windows: Open a new PowerShell window, cd to worktree, and run claude
+      spawn('powershell.exe', [
+        '-Command',
+        `Start-Process powershell -ArgumentList '-NoExit', '-Command', 'cd \\"${worktreePath}\\"; claude'`
+      ], {
         detached: true,
         stdio: 'ignore',
         shell: true
