@@ -5,5 +5,9 @@
     "name": "ralph-wiggum-windows",
     "source": "./ralph-wiggum-windows",
     "description": "alph Wiggum loop plugin for Windows - PowerShell version"
+  }, {
+    "name": "worktree-creator",
+    "source": "./worktree-creator",
+    "description": "Create git worktrees with automatic TypeScript project setup and Claude launch"
   }]
 }
