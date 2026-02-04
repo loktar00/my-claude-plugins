@@ -1,0 +1,7 @@
+{
+  "name": "worktree-creator",
+  "version": "1.0.0",
+  "description": "Create git worktrees with automatic TypeScript project setup and Claude launch",
+  "author": { "name": "loktar" },
+  "license": "MIT"
+}
