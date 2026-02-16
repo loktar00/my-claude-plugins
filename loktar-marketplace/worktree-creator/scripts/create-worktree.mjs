@@ -108,6 +108,30 @@ function findEnvFilesRecursively(dir, baseDir) {
 }
 
 /**
+ * Recursively copy a directory and its contents
+ * @param {string} src - Source directory path
+ * @param {string} dest - Destination directory path
+ */
+function copyDirectoryRecursively(src, dest) {
+  if (!existsSync(src)) return;
+
+  mkdirSync(dest, { recursive: true });
+
+  const entries = readdirSync(src);
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry);
+    const destPath = path.join(dest, entry);
+
+    const stat = statSync(srcPath);
+    if (stat.isDirectory()) {
+      copyDirectoryRecursively(srcPath, destPath);
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+/**
  * Copy .env files to worktree, preserving directory structure
  * @param {Array<{absolute: string, relative: string}>} envFiles - Files to copy
  * @param {string} worktreePath - Destination worktree path
@@ -146,8 +170,9 @@ function prompt(rl, question) {
  * @param {string} worktreeName - Name for the worktree directory
  * @param {string} branchName - Name for the git branch
  * @param {string} repoRoot - Path to the repository root
+ * @param {boolean} copyClaudeDir - Whether to copy .claude directory
  */
-function createWorktree(worktreeName, branchName, repoRoot) {
+function createWorktree(worktreeName, branchName, repoRoot, copyClaudeDir) {
   // Worktree path is under {project-root}-worktrees/
   const worktreesParentDir = `${repoRoot}-worktrees`;
   const worktreePath = path.join(worktreesParentDir, worktreeName);
@@ -167,9 +192,12 @@ function createWorktree(worktreeName, branchName, repoRoot) {
     mkdirSync(worktreesParentDir, { recursive: true });
   }
 
+  const totalSteps = copyClaudeDir ? 5 : 4;
+  let step = 1;
+
   // Create the worktree with a new branch
   try {
-    console.log('\n[1/4] Creating git worktree...');
+    console.log(`\n[${step}/${totalSteps}] Creating git worktree...`);
     execSync(`git worktree add -b "${branchName}" "${worktreePath}"`, {
       encoding: 'utf8',
       stdio: 'inherit'
@@ -179,9 +207,10 @@ function createWorktree(worktreeName, branchName, repoRoot) {
     console.error('Error creating worktree:', error.message);
     process.exit(1);
   }
+  step++;
 
   // Copy all .env* files recursively
-  console.log('\n[2/4] Copying .env files...');
+  console.log(`\n[${step}/${totalSteps}] Copying .env files...`);
   try {
     const envFiles = findEnvFilesRecursively(repoRoot, repoRoot);
     if (envFiles.length === 0) {
@@ -193,9 +222,25 @@ function createWorktree(worktreeName, branchName, repoRoot) {
     console.error('Warning: Error copying .env files:', error.message);
     // Continue anyway - this is not a critical error
   }
+  step++;
+
+  // Copy .claude directory if requested
+  if (copyClaudeDir) {
+    console.log(`\n[${step}/${totalSteps}] Copying .claude directory...`);
+    try {
+      const srcClaudeDir = path.join(repoRoot, '.claude');
+      const destClaudeDir = path.join(worktreePath, '.claude');
+      copyDirectoryRecursively(srcClaudeDir, destClaudeDir);
+      console.log('  .claude directory copied successfully');
+    } catch (error) {
+      console.error('Warning: Error copying .claude directory:', error.message);
+      // Continue anyway - this is not a critical error
+    }
+    step++;
+  }
 
   // Run npm install
-  console.log('\n[3/4] Running npm install...');
+  console.log(`\n[${step}/${totalSteps}] Running npm install...`);
   try {
     execSync('npm install', {
       cwd: worktreePath,
@@ -207,9 +252,10 @@ function createWorktree(worktreeName, branchName, repoRoot) {
     console.error('Warning: npm install failed:', error.message);
     // Continue anyway - still launch claude
   }
+  step++;
 
   // Launch claude in a new terminal
-  console.log('\n[4/4] Launching Claude in new terminal...');
+  console.log(`\n[${step}/${totalSteps}] Launching Claude in new terminal...`);
   try {
     if (process.platform === 'win32') {
       // Windows: Open a new PowerShell window, cd to worktree, and run claude
@@ -306,9 +352,17 @@ async function main() {
       worktreeName = generateRandomName();
     }
 
+    // Check if .claude directory exists and ask about copying it
+    const claudeDir = path.join(repoRoot, '.claude');
+    let copyClaudeDir = false;
+    if (existsSync(claudeDir)) {
+      const copyClaudeAnswer = await prompt(rl, 'Copy .claude directory (permissions/settings)? (Y/n): ');
+      copyClaudeDir = copyClaudeAnswer.toLowerCase() !== 'n';
+    }
+
     rl.close();
 
-    createWorktree(worktreeName, branchName, repoRoot);
+    createWorktree(worktreeName, branchName, repoRoot, copyClaudeDir);
   } catch (error) {
     rl.close();
     console.error('Error:', error.message);
